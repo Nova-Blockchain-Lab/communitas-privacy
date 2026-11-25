@@ -1,0 +1,7 @@
+forge-std/=lib/forge-std/src/
+@semaphore-protocol/contracts/=node_modules/@semaphore-protocol/contracts/
+@zk-kit/=node_modules/@zk-kit/
+poseidon-solidity/=node_modules/poseidon-solidity/
+market/=lib/energy-bidding-market/src/
+@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/
+@openzeppelin/contracts/=lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/
