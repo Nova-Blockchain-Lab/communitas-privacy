@@ -127,6 +127,9 @@ async function bid() {
 }
 
 async function clear(hour) {
+  // Orbit makes a block only when there is a transaction, so on a quiet chain the latest block can predate the end
+  // of the hour and the gas estimate reverts with HourNotInPast. An empty transaction moves the chain's clock.
+  if ((await pub.getBlock()).timestamp < hour + 3600n) await pub.waitForTransactionReceipt({ hash: await wallet.sendTransaction({ to: account.address, value: 0n }) })
   const bids = await read("getBidsByHour", [hour])
   const sorted = bids.map((b, i) => [b.price, i]).sort((a, b) => (a[0] < b[0] ? 1 : a[0] > b[0] ? -1 : a[1] - b[1])).map(([, i]) => BigInt(i))
   const total = bids.reduce((s, b) => s + b.amount, 0n)

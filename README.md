@@ -92,13 +92,16 @@ part depends on the L1 pricer at the time.
 | 25 Nov, `addMembers`, 48 enrolled households | 2,914,740 | 1,686,237 | 0.00000046 ETH |
 | 25 Nov, `placeBidWithProof` (11 of 12 bids; the first bid of an hour costs 374,621) | 357,473 to 357,533 | 614,664 | 0.000000097 ETH |
 | 25 Nov, plain `placeBid`, for comparison (node estimate, total) | about 83,000 on anvil | | 316,852 L3 gas units in total |
+| 25 Nov, `placeAsksAndClearMarket`, 12 private bids, one ask, 8 trades | 372,780 | 288,511 | 0.000000066 ETH |
 
 A private bid costs about 274,000 execution gas more than a plain bid: the Groth16 verification, the
 nullifier and the extra event. Proof generation takes about 0.1 s (about 2 s on the first run,
 including the download of the depth-6 artifacts).
 
 Transactions, 25 Nov: addMembers `0x79d878a8d5a7e7143d3eeefe77742e1d4402cba07f2325b8c3a08d3ed793eb0e`;
-12 bids for the hour 2026-11-25 21:00 UTC, for example `0x93ff4403494a9f2311cc57f190593c5dcb2a4b9173cb417f6f23854b30bd2e88`.
+12 bids for the hour 2026-11-25 21:00 UTC, for example `0x93ff4403494a9f2311cc57f190593c5dcb2a4b9173cb417f6f23854b30bd2e88`;
+clearing of that hour (11,648 W demanded, 6,988 W offered, 8 `EnergyTraded` events)
+`0xfa20993eedf0e9896d6f05623645dfe954dd894e8e5efc47624900948300d078`.
 9 Oct: addMembers `0xbc23ae713ab00d7e71e8fc75d4256d62b0ef560a7324739dbf83070c1855baa4`, proof
 `0x97bf5c257094460ec9c7fc84f7b8021a25c76228839f65713b33497cadd127a4` (epoch 497651).
 
