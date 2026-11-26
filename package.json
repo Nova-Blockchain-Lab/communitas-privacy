@@ -2,23 +2,23 @@
   "name": "communitas-privacy",
   "version": "1.0.0",
   "description": "Privacy layer for the COMMUNITAS energy market on the Nova Cidade L3",
-  "main": "index.js",
-  "directories": {
-    "lib": "lib",
-    "test": "test"
-  },
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
   "author": "",
   "license": "MIT",
   "type": "commonjs",
   "dependencies": {
     "@owf/crypto": "0.8.0",
+    "@owf/token-status-list": "0.8.0",
     "@sd-jwt/sd-jwt-vc": "0.25.0",
     "@semaphore-protocol/contracts": "^4.14.3",
     "@semaphore-protocol/core": "^4.14.3",
     "viem": "^2.57.4"
-  }
+  },
+  "exports": {
+    "./client": "./client/index.mjs",
+    "./dso": "./dso/lib.mjs"
+  },
+  "files": [
+    "client/",
+    "dso/"
+  ]
 }

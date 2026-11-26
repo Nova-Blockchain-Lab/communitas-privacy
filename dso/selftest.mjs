@@ -1,6 +1,11 @@
 // Self-test of the issuance pipeline: 48 synthetic households (no real data) are issued a
-// credential, present it and are admitted; then each attack below must be refused.
+// credential, present it and are admitted; then each attack below must be refused, and revocation
+// must reach admission and the list of commitments to remove.
 import { Identity } from "@semaphore-protocol/core"
+import { mkdtempSync, rmSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
+import { deflateSync, inflateSync } from "node:zlib"
 import { createDso, createHolder, createAdmission, bindingNonce, YEAR } from "./lib.mjs"
 
 const aud = "https://admission.mock.communitas.invalid"
@@ -10,7 +15,8 @@ const households = Object.entries(pilots).flatMap(([pilot, n]) =>
 )
 
 const dso = await createDso()
-const admission = await createAdmission({ dsoPublicJwk: dso.publicJwk, aud })
+let serve = () => dso.statusList() // what the status list endpoint returns; attacks below replace it
+const admission = await createAdmission({ dsoPublicJwk: dso.publicJwk, aud, statusListFetcher: () => serve() })
 let failures = 0
 const fail = (msg) => { failures++; console.log(`FAIL ${msg}`) }
 const ms = (t) => `${(performance.now() - t).toFixed(0)} ms`
@@ -72,6 +78,54 @@ await refused("expired credential", /expired/i, () => run(d.holder, d.cred))
 const e = await fresh("dk-meter-95")
 await refused("KB-JWT for another audience", /audience/i, () => run(e.holder, e.cred, { audience: "https://other.invalid" }))
 await refused("reused challenge", /challenge/, () => run(e.holder, e.cred, { r: rs[1] }))
+
+// Revocation.
+const f = await fresh("dk-meter-96")
+dso.revoke("dk-meter-96")
+await refused("revoked credential", /Status is not valid/, () => run(f.holder, f.cred))
+const g = await fresh("dk-meter-97")
+const foreign = await createDso()
+serve = () => foreign.statusList() // a list where nothing is revoked, signed by another key
+await refused("status list token signed by a different DSO key", /Status List JWT verification failed/, () => run(g.holder, g.cred))
+// The real token with every bit cleared, so the revoked credential would pass; the signature no longer matches.
+const [hd, pl, sig] = (await dso.statusList()).split(".")
+const claims = JSON.parse(Buffer.from(pl, "base64url"))
+claims.status_list.lst = deflateSync(inflateSync(Buffer.from(claims.status_list.lst, "base64url")).fill(0)).toString("base64url")
+const tampered = `${hd}.${Buffer.from(JSON.stringify(claims)).toString("base64url")}.${sig}`
+serve = async () => tampered
+await refused("tampered status list (revocations cleared)", /Status List JWT verification failed/, () => run(f.holder, f.cred))
+serve = () => dso.statusList()
+
+// Revoking an enrolled household yields its commitment, and only from a list signed by the DSO.
+dso.revoke("es-meter-03")
+const removals = await admission.removals(await dso.statusList())
+const es3 = holders[households.findIndex((h) => h.meter_id === "es-meter-03")].identity.commitment
+if (removals.length !== 1 || removals[0] !== es3) fail(`removals: expected [es-meter-03], got ${removals}`)
+else console.log("removals  es-meter-03 revoked: its commitment is the only one to remove")
+await refused("removals from a list signed by a different DSO key", /invalid signature/, async () => admission.removals(await foreign.statusList()))
+await refused("removals from a tampered list", /invalid signature/, () => admission.removals(tampered))
+
+// State survives a restart: a reloaded DSO keeps its key and indices, a reloaded admission its enrolments.
+const dir = mkdtempSync(join(tmpdir(), "dso-selftest-"))
+const files = { dso: join(dir, "dso.json"), adm: join(dir, "admission.json") }
+const reload = async () => {
+  const d = await createDso(files.dso)
+  return [d, await createAdmission({ dsoPublicJwk: d.publicJwk, aud, statusListFetcher: () => d.statusList(), path: files.adm })]
+}
+let [d1, a1] = await reload()
+const p = await createHolder("selftest-persist")
+const pc = await d1.issue({ community: "communitas", pilot: "DK", meter_id: "dk-meter-99" }, p.publicJwk)
+const pr = a1.challenge()
+await a1.admit(await p.present(pc, { nonce: bindingNonce(pr, p.identity.commitment), aud }), p.identity.commitment, pr)
+;[d1, a1] = await reload()
+const pr2 = a1.challenge()
+await refused("second enrolment after a restart", /already enrolled/, async () =>
+  a1.admit(await p.present(pc, { nonce: bindingNonce(pr2, other.commitment), aud }), other.commitment, pr2))
+d1.revoke("dk-meter-99")
+const after = await a1.removals(await d1.statusList())
+if (after.length !== 1 || after[0] !== p.identity.commitment) fail(`after restart: expected [dk-meter-99], got ${after}`)
+else console.log("restart   reloaded DSO and admission: dk-meter-99 revoked and found for removal")
+rmSync(dir, { recursive: true })
 
 console.log(failures ? `${failures} FAILED` : "all checks passed")
 process.exit(failures ? 1 : 0)

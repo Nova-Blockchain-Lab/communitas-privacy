@@ -3,3 +3,7 @@ out/
 node_modules/
 broadcast/
 .env
+sim/out/
+attacks/out/
+__pycache__/
+state/
