@@ -141,6 +141,7 @@ part depends on the L1 pricer at the time.
 | 25 Nov, `removeMember`, one of 48 members (anvil; depends on the leaf's position) | 393,072 to 459,889 | | |
 | 26 Nov, `addMembers`, 48 enrolled households, group 2 | 2,914,740 | 1,680,686 | 0.00000046 ETH |
 | 26 Nov, `removeMember`, one revoked household, group 2 | 457,657 | 422,808 | 0.000000088 ETH |
+| 26 Nov, `placeAsksAndClearMarket`, 12 private bids, one ask, 9 trades | 376,003 | 279,411 | 0.000000066 ETH |
 
 A private bid costs about 274,000 execution gas more than a plain bid: the Groth16 verification, the
 nullifier and the extra event. Proof generation takes about 0.1 s (about 2 s on the first run,
@@ -154,7 +155,8 @@ clearing of that hour (11,648 W demanded, 6,988 W offered, 8 `EnergyTraded` even
 `0x97bf5c257094460ec9c7fc84f7b8021a25c76228839f65713b33497cadd127a4` (epoch 497651).
 26 Nov, market 2: addMembers `0x859a9c4dfe91c5e6f01254c5c280d1bd6e5a028dc27d9d14b6a16b73b89b055e`; 12 bids for the hour
 2026-11-26 00:00 UTC; removal of `es-meter-03` after the DSO revoked it
-`0x9dec094174d8163e5251d9557395034b17ab04e1e42babe22a6f7cc4c03d94f4`.
+`0x9dec094174d8163e5251d9557395034b17ab04e1e42babe22a6f7cc4c03d94f4`; clearing of that hour (9,949 W demanded,
+5,969 W offered, 9 trades) `0xed8f9d568b56b4bb1577464b45c042f8f582a619c2b1762d5539a13c0973aec6`.
 
 Revocation window. Semaphore 4.14.3 accepts a proof against a past root until that root's creation time plus
 the group's `merkleTreeDuration`, which `createGroup(admin)` sets to 1 hour. A removed household can therefore
@@ -165,7 +167,8 @@ old-root proof was refused at once with `MerkleTreeRootIsExpired`. A second remo
 (6 s later) and 3,600 s (same second) in two runs: the old-root proof was accepted at block time equal to the
 expiry and refused one second later. In every run a tree with the household added back was refused with
 `MerkleTreeRootIsNotPartOfTheGroup`. On the L3 (26 Nov) the removal came 7 s after enrolment, so the window was
-3,593 s.
+3,593 s; at 01:01 UTC, after the root expired, the household's proof against it was refused with
+`MerkleTreeRootIsExpired`.
 
 ## Replay week (3 to 10 Nov 2026), on anvil
 
